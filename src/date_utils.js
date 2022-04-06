@@ -107,6 +107,16 @@ const month_names = {
     ]
 };
 
+const hour_names = {
+    en: Array.apply(null, {length: 24}).map((item, index) => index + 'h'),
+    es: [],
+    ru: [],
+    ptBr: [],
+    fr: [],
+    tr: [],
+    zh: Array.apply(null, {length: 24}).map((item, index) => index + '时')
+}
+
 export default {
     parse(date, date_separator = '-', time_separator = /[.:]/) {
         if (date instanceof Date) {
@@ -169,10 +179,12 @@ export default {
             HH: values[3],
             mm: values[4],
             ss: values[5],
-            SSS:values[6],
+            SSS: values[6],
             D: values[2],
             MMMM: month_names[lang][+values[1]],
-            MMM: month_names[lang][+values[1]]
+            MMM: month_names[lang][+values[1]],
+            HHHH: hour_names[lang][+values[3]],
+            HHH: hour_names[lang][+values[3]],
         };
 
         let str = format_string;
