@@ -108,14 +108,14 @@ const month_names = {
 };
 
 const hour_names = {
-    en: Array.apply(null, {length: 24}).map((item, index) => index + 'h'),
+    en: Array.apply(null, { length: 24 }).map((item, index) => index + 'h'),
     es: [],
     ru: [],
     ptBr: [],
     fr: [],
     tr: [],
-    zh: Array.apply(null, {length: 24}).map((item, index) => index + '时')
-}
+    zh: Array.apply(null, { length: 24 }).map((item, index) => index + '时')
+};
 
 export default {
     parse(date, date_separator = '-', time_separator = /[.:]/) {
@@ -184,7 +184,7 @@ export default {
             MMMM: month_names[lang][+values[1]],
             MMM: month_names[lang][+values[1]],
             HHHH: hour_names[lang][+values[3]],
-            HHH: hour_names[lang][+values[3]],
+            HHH: hour_names[lang][+values[3]]
         };
 
         let str = format_string;
@@ -270,17 +270,54 @@ export default {
 
         function should_reset(_scale) {
             const max_score = scores[scale];
-            return scores[_scale] <= max_score;
+            return scores[_scale] < max_score;
         }
 
         const vals = [
             date.getFullYear(),
-            should_reset(YEAR) ? 0 : date.getMonth(),
-            should_reset(MONTH) ? 1 : date.getDate(),
-            should_reset(DAY) ? 0 : date.getHours(),
-            should_reset(HOUR) ? 0 : date.getMinutes(),
-            should_reset(MINUTE) ? 0 : date.getSeconds(),
-            should_reset(SECOND) ? 0 : date.getMilliseconds()
+            should_reset(MONTH) ? 0 : date.getMonth(),
+            should_reset(DAY) ? 1 : date.getDate(),
+            should_reset(HOUR) ? 0 : date.getHours(),
+            should_reset(MINUTE) ? 0 : date.getMinutes(),
+            should_reset(SECOND) ? 0 : date.getSeconds(),
+            should_reset(MILLISECOND) ? 0 : date.getMilliseconds()
+        ];
+
+        return new Date(...vals);
+    },
+
+    end_of(date, scale) {
+        const scores = {
+            [YEAR]: 6,
+            [MONTH]: 5,
+            [DAY]: 4,
+            [HOUR]: 3,
+            [MINUTE]: 2,
+            [SECOND]: 1,
+            [MILLISECOND]: 0
+        };
+
+        function should_reset(_scale) {
+            const max_score = scores[scale];
+            return scores[_scale] < max_score;
+        }
+
+        function getLastDate(date) {
+            const last_date = new Date(date);
+            const month = last_date.getMonth();
+            last_date.setMonth(month + 1);
+            last_date.setDate(0);
+            return last_date.getDate();
+        }
+
+        const vals = [
+            date.getFullYear(),
+            should_reset(MONTH) ? 11 : date.getMonth(),
+            should_reset(DAY) ? getLastDate(date) : date.getDate(),
+            should_reset(HOUR) ? 23 : date.getHours(),
+            should_reset(MINUTE) ? 59 : date.getMinutes(),
+            should_reset(SECOND) ? 59 : date.getSeconds(),
+            should_reset(MILLISECOND) ? 999 : date.getMilliseconds()
         ];
 
         return new Date(...vals);
