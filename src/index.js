@@ -239,15 +239,9 @@ export default class Gantt {
                 this.gantt_end = task._end;
             }
         }
-
-        this.gantt_start = date_utils.start_of(
-            this.gantt_start || new Date(),
-            'day'
-        );
-        this.gantt_end = date_utils.start_of(
-            this.gantt_end || new Date(),
-            'day'
-        );
+        if (!this.gantt_start) {
+            this.gantt_start = new Date();
+        }
 
         if (this.options.gantt_end) {
             this.gantt_end = date_utils.parse(this.options.gantt_end);
@@ -255,8 +249,8 @@ export default class Gantt {
 
         // add date padding on both sides
         if (this.view_is([VIEW_MODE.MINUTE, VIEW_MODE.TEN_MINUTE])) {
-            this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
-            this.gantt_end = date_utils.end_of(this.gantt_end, 'day');
+            this.gantt_start = date_utils.start_of(this.gantt_start, 'hour');
+            this.gantt_end = date_utils.end_of(this.gantt_end, 'hour');
         } else if (this.view_is(VIEW_MODE.HOUR)) {
             this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
             this.gantt_end = date_utils.end_of(this.gantt_end, 'day');
@@ -270,7 +264,6 @@ export default class Gantt {
             this.gantt_start = date_utils.start_of(this.gantt_start, 'month');
             this.gantt_end = date_utils.end_of(this.gantt_end, 'month');
         }
-        console.log(this.gantt_start, this.gantt_end);
     }
 
     setup_date_values() {
@@ -520,7 +513,23 @@ export default class Gantt {
 
     get_date_info(date, last_date, i) {
         if (!last_date) {
-            last_date = date_utils.add(date, 1, 'year');
+            let scale = 'year';
+            switch (this.options.view_mode.toLowerCase()) {
+                case 'ten minute':
+                case 'minute':
+                    scale = 'hour';
+                    break;
+                case 'hour':
+                    scale = 'day';
+                    break;
+                case 'day':
+                    scale = 'month';
+                    break;
+                default:
+                    // month
+                    scale = 'year';
+            }
+            last_date = date_utils.add(date, 1, scale);
         }
         const date_text = {
             Minute_lower: date_utils.format(date, 'mm', this.options.language),
@@ -530,10 +539,7 @@ export default class Gantt {
                 this.options.language
             ),
             Hour_lower: date_utils.format(date, 'HH', this.options.language),
-            Day_lower:
-                date.getDate() !== last_date.getDate()
-                    ? date_utils.format(date, 'D', this.options.language)
-                    : '',
+            Day_lower: date_utils.format(date, 'D', this.options.language),
             Week_lower:
                 date.getMonth() !== last_date.getMonth()
                     ? date_utils.format(date, 'MMM D', this.options.language)
@@ -621,12 +627,12 @@ export default class Gantt {
         };
 
         const x_pos = {
-            Minute_lower: this.options.column_width * 60 / 2,
-            Minute_upper: 0,
-            'Ten Minute_lower': this.options.column_width * 6 / 2,
-            'Ten Minute_upper': 0,
-            Hour_lower: this.options.column_width * 2 / 2,
-            Hour_upper: 0,
+            Minute_lower: this.options.column_width / 2,
+            Minute_upper: this.options.column_width * 60 / 2,
+            'Ten Minute_lower': this.options.column_width / 2,
+            'Ten Minute_upper': this.options.column_width * 6 / 2,
+            Hour_lower: this.options.column_width / 2,
+            Hour_upper: this.options.column_width * 24 / 2,
             Day_lower: this.options.column_width / 2,
             Day_upper: this.options.column_width * 30 / 2,
             Week_lower: 0,
