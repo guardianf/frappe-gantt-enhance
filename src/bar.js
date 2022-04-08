@@ -21,19 +21,25 @@ export default class Bar {
     }
 
     prepare_values() {
+        const {
+            bar_height,
+            bar_corner_radius,
+            column_width,
+            view_mode
+        } = this.gantt.options;
         this.invalid = this.task.invalid;
-        this.height = this.gantt.options.bar_height;
+        this.height = bar_height;
         this.x = this.compute_x();
         this.y = this.compute_y();
-        this.corner_radius = this.gantt.options.bar_corner_radius;
-        this.duration =
-            date_utils.diff(this.task._end, this.task._start, 'hour') /
-            this.gantt.options.step;
-        this.width = this.gantt.options.column_width * this.duration;
+        this.corner_radius = bar_corner_radius;
+        this.duration = date_utils.diff(
+            this.task._end,
+            this.task._start,
+            view_mode.toLowerCase()
+        );
+        this.width = column_width * this.duration;
         this.progress_width =
-            this.gantt.options.column_width *
-                this.duration *
-                (this.task.progress / 100) || 0;
+            column_width * this.duration * (this.task.progress / 100) || 0;
         this.group = createSVG('g', {
             class: 'bar-wrapper ' + (this.task.custom_class || ''),
             'data-id': this.task.id
@@ -281,17 +287,18 @@ export default class Bar {
 
     compute_start_end_date() {
         const bar = this.$bar;
-        const x_in_units = bar.getX() / this.gantt.options.column_width;
+        const { column_width, view_mode } = this.gantt.options;
+        const x_in_units = bar.getX() / column_width;
         const new_start_date = date_utils.add(
             this.gantt.gantt_start,
-            x_in_units * this.gantt.options.step,
-            'hour'
+            x_in_units,
+            view_mode.toLowerCase()
         );
-        const width_in_units = bar.getWidth() / this.gantt.options.column_width;
+        const width_in_units = bar.getWidth() / column_width;
         const new_end_date = date_utils.add(
             new_start_date,
-            width_in_units * this.gantt.options.step,
-            'hour'
+            width_in_units,
+            view_mode.toLowerCase()
         );
 
         return { new_start_date, new_end_date };
@@ -304,17 +311,22 @@ export default class Bar {
     }
 
     compute_x() {
-        const { step, column_width } = this.gantt.options;
+        const { column_width, view_mode } = this.gantt.options;
         const task_start = this.task._start;
         const gantt_start = this.gantt.gantt_start;
 
-        const diff = date_utils.diff(task_start, gantt_start, 'hour');
-        let x = diff / step * column_width;
+        // const diff = date_utils.diff(task_start, gantt_start, 'hour');
+        const diff = date_utils.diff(
+            task_start,
+            gantt_start,
+            view_mode.toLowerCase()
+        );
+        let x = diff * column_width;
 
-        if (this.gantt.view_is('Month')) {
-            const diff = date_utils.diff(task_start, gantt_start, 'day');
-            x = diff * column_width / 30;
-        }
+        // if (this.gantt.view_is('Month')) {
+        //     const diff = date_utils.diff(task_start, gantt_start, 'day');
+        //     x = diff * column_width / 30;
+        // }
         return x;
     }
 

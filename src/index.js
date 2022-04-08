@@ -200,16 +200,16 @@ export default class Gantt {
 
         if (view_mode === VIEW_MODE.DAY) {
             this.options.step = 24;
-            this.options.column_width = 38;
+            this.options.column_width = 36;
         } else if (view_mode === VIEW_MODE.HOUR) {
             this.options.step = 1;
-            this.options.column_width = 38;
+            this.options.column_width = 36;
         } else if (view_mode === VIEW_MODE.MINUTE) {
             this.options.step = 1 / 60;
-            this.options.column_width = 38;
+            this.options.column_width = 36;
         } else if (view_mode === VIEW_MODE.TEN_MINUTE) {
             this.options.step = 1 / 6;
-            this.options.column_width = 38;
+            this.options.column_width = 36;
         } else if (view_mode === VIEW_MODE.WEEK) {
             this.options.step = 24 * 7;
             this.options.column_width = 140;

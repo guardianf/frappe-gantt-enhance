@@ -3,6 +3,7 @@ const MONTH = 'month';
 const DAY = 'day';
 const HOUR = 'hour';
 const MINUTE = 'minute';
+const TEN_MINUTE = 'ten minute';
 const SECOND = 'second';
 const MILLISECOND = 'millisecond';
 
@@ -207,11 +208,19 @@ export default {
     },
 
     diff(date_a, date_b, scale = DAY) {
-        let milliseconds, seconds, hours, minutes, days, months, years;
+        let milliseconds,
+            seconds,
+            minutes,
+            ten_minutes,
+            hours,
+            days,
+            months,
+            years;
 
         milliseconds = date_a - date_b;
         seconds = milliseconds / 1000;
         minutes = seconds / 60;
+        ten_minutes = seconds / 60 / 10;
         hours = minutes / 60;
         days = hours / 24;
         months = days / 30;
@@ -226,6 +235,7 @@ export default {
                 milliseconds,
                 seconds,
                 minutes,
+                'ten minutes': ten_minutes,
                 hours,
                 days,
                 months,
@@ -250,7 +260,8 @@ export default {
             date.getMonth() + (scale === MONTH ? qty : 0),
             date.getDate() + (scale === DAY ? qty : 0),
             date.getHours() + (scale === HOUR ? qty : 0),
-            date.getMinutes() + (scale === MINUTE ? qty : 0),
+            date.getMinutes() +
+                (scale === MINUTE ? qty : scale === TEN_MINUTE ? qty * 10 : 0),
             date.getSeconds() + (scale === SECOND ? qty : 0),
             date.getMilliseconds() + (scale === MILLISECOND ? qty : 0)
         ];
