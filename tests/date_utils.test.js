@@ -66,12 +66,15 @@ test('Parse: returns Date Object as is', () => {
 });
 
 test('Diff: returns diff between 2 date objects', () => {
-    const a = date_utils.parse('2017-09-08');
-    const b = date_utils.parse('2017-06-07');
+    const a = date_utils.parse('2018-09-08 02:03:04.999');
+    const b = date_utils.parse('2017-06-07 01:02:03.000');
 
-    expect(date_utils.diff(a, b, 'day')).toBe(93);
-    expect(date_utils.diff(a, b, 'month')).toBe(3);
-    expect(date_utils.diff(a, b, 'year')).toBe(0);
+    expect(date_utils.diff(a, b, 'year')).toBe(1);
+    expect(date_utils.diff(a, b, 'month')).toBe(15);
+    expect(date_utils.diff(a, b, 'day')).toBe(458);
+    expect(date_utils.diff(a, b, 'hour')).toBe(10993);
+    expect(date_utils.diff(a, b, 'ten minute')).toBe(65958);
+    expect(date_utils.diff(a, b, 'minute')).toBe(659581);
 });
 
 test('StartOf', () => {
@@ -113,6 +116,45 @@ test('StartOf', () => {
     );
 });
 
+test('EndOf', () => {
+    const date = date_utils.parse('2017-08-12 15:07:34.012');
+
+    const end_of_millisecond = date_utils.end_of(date, 'millisecond');
+    expect(date_utils.to_string(end_of_millisecond, true)).toBe(
+        '2017-08-12 15:07:34.012'
+    );
+
+    const end_of_second = date_utils.end_of(date, 'second');
+    expect(date_utils.to_string(end_of_second, true)).toBe(
+        '2017-08-12 15:07:34.999'
+    );
+
+    const end_of_minute = date_utils.end_of(date, 'minute');
+    expect(date_utils.to_string(end_of_minute, true)).toBe(
+        '2017-08-12 15:07:59.999'
+    );
+
+    const end_of_hour = date_utils.end_of(date, 'hour');
+    expect(date_utils.to_string(end_of_hour, true)).toBe(
+        '2017-08-12 15:59:59.999'
+    );
+
+    const end_of_day = date_utils.end_of(date, 'day');
+    expect(date_utils.to_string(end_of_day, true)).toBe(
+        '2017-08-12 23:59:59.999'
+    );
+
+    const end_of_month = date_utils.end_of(date, 'month');
+    expect(date_utils.to_string(end_of_month, true)).toBe(
+        '2017-08-31 23:59:59.999'
+    );
+
+    const end_of_year = date_utils.end_of(date, 'year');
+    expect(date_utils.to_string(end_of_year, true)).toBe(
+        '2017-12-31 23:59:59.999'
+    );
+});
+
 test('format', () => {
     const date = date_utils.parse('2017-08-12 15:07:23');
     expect(date_utils.format(date, 'YYYY-MM-DD')).toBe('2017-08-12');
@@ -122,5 +164,3 @@ test('format', () => {
     const date = date_utils.parse('2016-02-29 16:08:34.3');
     expect(date_utils.format(date)).toBe('2016-02-29 16:08:34.300');
 });
-
-
