@@ -6,6 +6,7 @@ const MONTH = 'month';
 const DAY = 'day';
 const HOUR = 'hour';
 const MINUTE = 'minute';
+const TEN_MINUTE = 'ten minute';
 const SECOND = 'second';
 const MILLISECOND = 'millisecond';
 
@@ -110,6 +111,16 @@ const month_names = {
     ]
 };
 
+const hour_names = {
+    en: Array.apply(null, { length: 24 }).map((item, index) => index + 'h'),
+    es: [],
+    ru: [],
+    ptBr: [],
+    fr: [],
+    tr: [],
+    zh: Array.apply(null, { length: 24 }).map((item, index) => index + '时')
+};
+
 var date_utils = {
     parse(date, date_separator = '-', time_separator = /[.:]/) {
         if (date instanceof Date) {
@@ -172,10 +183,12 @@ var date_utils = {
             HH: values[3],
             mm: values[4],
             ss: values[5],
-            SSS:values[6],
+            SSS: values[6],
             D: values[2],
             MMMM: month_names[lang][+values[1]],
-            MMM: month_names[lang][+values[1]]
+            MMM: month_names[lang][+values[1]],
+            HHHH: hour_names[lang][+values[3]],
+            HHH: hour_names[lang][+values[3]]
         };
 
         let str = format_string;
@@ -198,11 +211,19 @@ var date_utils = {
     },
 
     diff(date_a, date_b, scale = DAY) {
-        let milliseconds, seconds, hours, minutes, days, months, years;
+        let milliseconds,
+            seconds,
+            minutes,
+            ten_minutes,
+            hours,
+            days,
+            months,
+            years;
 
         milliseconds = date_a - date_b;
         seconds = milliseconds / 1000;
         minutes = seconds / 60;
+        ten_minutes = seconds / 60 / 10;
         hours = minutes / 60;
         days = hours / 24;
         months = days / 30;
@@ -217,6 +238,7 @@ var date_utils = {
                 milliseconds,
                 seconds,
                 minutes,
+                'ten minutes': ten_minutes,
                 hours,
                 days,
                 months,
@@ -241,7 +263,8 @@ var date_utils = {
             date.getMonth() + (scale === MONTH ? qty : 0),
             date.getDate() + (scale === DAY ? qty : 0),
             date.getHours() + (scale === HOUR ? qty : 0),
-            date.getMinutes() + (scale === MINUTE ? qty : 0),
+            date.getMinutes() +
+                (scale === MINUTE ? qty : scale === TEN_MINUTE ? qty * 10 : 0),
             date.getSeconds() + (scale === SECOND ? qty : 0),
             date.getMilliseconds() + (scale === MILLISECOND ? qty : 0)
         ];
@@ -261,17 +284,54 @@ var date_utils = {
 
         function should_reset(_scale) {
             const max_score = scores[scale];
-            return scores[_scale] <= max_score;
+            return scores[_scale] < max_score;
         }
 
         const vals = [
             date.getFullYear(),
-            should_reset(YEAR) ? 0 : date.getMonth(),
-            should_reset(MONTH) ? 1 : date.getDate(),
-            should_reset(DAY) ? 0 : date.getHours(),
-            should_reset(HOUR) ? 0 : date.getMinutes(),
-            should_reset(MINUTE) ? 0 : date.getSeconds(),
-            should_reset(SECOND) ? 0 : date.getMilliseconds()
+            should_reset(MONTH) ? 0 : date.getMonth(),
+            should_reset(DAY) ? 1 : date.getDate(),
+            should_reset(HOUR) ? 0 : date.getHours(),
+            should_reset(MINUTE) ? 0 : date.getMinutes(),
+            should_reset(SECOND) ? 0 : date.getSeconds(),
+            should_reset(MILLISECOND) ? 0 : date.getMilliseconds()
+        ];
+
+        return new Date(...vals);
+    },
+
+    end_of(date, scale) {
+        const scores = {
+            [YEAR]: 6,
+            [MONTH]: 5,
+            [DAY]: 4,
+            [HOUR]: 3,
+            [MINUTE]: 2,
+            [SECOND]: 1,
+            [MILLISECOND]: 0
+        };
+
+        function should_reset(_scale) {
+            const max_score = scores[scale];
+            return scores[_scale] < max_score;
+        }
+
+        function getLastDate(date) {
+            const last_date = new Date(date);
+            const month = last_date.getMonth();
+            last_date.setMonth(month + 1);
+            last_date.setDate(0);
+            return last_date.getDate();
+        }
+
+        const vals = [
+            date.getFullYear(),
+            should_reset(MONTH) ? 11 : date.getMonth(),
+            should_reset(DAY) ? getLastDate(date) : date.getDate(),
+            should_reset(HOUR) ? 23 : date.getHours(),
+            should_reset(MINUTE) ? 59 : date.getMinutes(),
+            should_reset(SECOND) ? 59 : date.getSeconds(),
+            should_reset(MILLISECOND) ? 999 : date.getMilliseconds()
         ];
 
         return new Date(...vals);
@@ -481,19 +541,25 @@ class Bar {
     }
 
     prepare_values() {
+        const {
+            bar_height,
+            bar_corner_radius,
+            column_width,
+            view_mode
+        } = this.gantt.options;
         this.invalid = this.task.invalid;
-        this.height = this.gantt.options.bar_height;
+        this.height = bar_height;
         this.x = this.compute_x();
         this.y = this.compute_y();
-        this.corner_radius = this.gantt.options.bar_corner_radius;
-        this.duration =
-            date_utils.diff(this.task._end, this.task._start, 'hour') /
-            this.gantt.options.step;
-        this.width = this.gantt.options.column_width * this.duration;
+        this.corner_radius = bar_corner_radius;
+        this.duration = date_utils.diff(
+            this.task._end,
+            this.task._start,
+            view_mode.toLowerCase()
+        );
+        this.width = column_width * this.duration;
         this.progress_width =
-            this.gantt.options.column_width *
-                this.duration *
-                (this.task.progress / 100) || 0;
+            column_width * this.duration * (this.task.progress / 100) || 0;
         this.group = createSVG('g', {
             class: 'bar-wrapper ' + (this.task.custom_class || ''),
             'data-id': this.task.id
@@ -659,10 +725,14 @@ class Bar {
     show_popup() {
         if (this.gantt.bar_being_dragged) return;
 
-        const start_date = date_utils.format(this.task._start, 'MMM D', this.gantt.options.language);
+        const start_date = date_utils.format(
+            this.task._start,
+            'MMM D HH:mm',
+            this.gantt.options.language
+        );
         const end_date = date_utils.format(
             date_utils.add(this.task._end, -1, 'second'),
-            'MMM D',
+            'MMM D HH:mm',
             this.gantt.options.language
         );
         const subtitle = start_date + ' - ' + end_date;
@@ -671,7 +741,7 @@ class Bar {
             target_element: this.$bar,
             title: this.task.name,
             subtitle: subtitle,
-            task: this.task,
+            task: this.task
         });
     }
 
@@ -737,17 +807,18 @@ class Bar {
 
     compute_start_end_date() {
         const bar = this.$bar;
-        const x_in_units = bar.getX() / this.gantt.options.column_width;
+        const { column_width, view_mode } = this.gantt.options;
+        const x_in_units = bar.getX() / column_width;
         const new_start_date = date_utils.add(
             this.gantt.gantt_start,
-            x_in_units * this.gantt.options.step,
-            'hour'
+            x_in_units,
+            view_mode.toLowerCase()
         );
-        const width_in_units = bar.getWidth() / this.gantt.options.column_width;
+        const width_in_units = bar.getWidth() / column_width;
         const new_end_date = date_utils.add(
             new_start_date,
-            width_in_units * this.gantt.options.step,
-            'hour'
+            width_in_units,
+            view_mode.toLowerCase()
         );
 
         return { new_start_date, new_end_date };
@@ -760,17 +831,22 @@ class Bar {
     }
 
     compute_x() {
-        const { step, column_width } = this.gantt.options;
+        const { column_width, view_mode } = this.gantt.options;
         const task_start = this.task._start;
         const gantt_start = this.gantt.gantt_start;
 
-        const diff = date_utils.diff(task_start, gantt_start, 'hour');
-        let x = diff / step * column_width;
+        // const diff = date_utils.diff(task_start, gantt_start, 'hour');
+        const diff = date_utils.diff(
+            task_start,
+            gantt_start,
+            view_mode.toLowerCase()
+        );
+        let x = diff * column_width;
 
-        if (this.gantt.view_is('Month')) {
-            const diff = date_utils.diff(task_start, gantt_start, 'day');
-            x = diff * column_width / 30;
-        }
+        // if (this.gantt.view_is('Month')) {
+        //     const diff = date_utils.diff(task_start, gantt_start, 'day');
+        //     x = diff * column_width / 30;
+        // }
         return x;
     }
 
@@ -1031,8 +1107,9 @@ class Popup {
 }
 
 const VIEW_MODE = {
-    QUARTER_DAY: 'Quarter Day',
-    HALF_DAY: 'Half Day',
+    MINUTE: 'Minute',
+    TEN_MINUTE: 'Ten Minute',
+    HOUR: 'Hour',
     DAY: 'Day',
     WEEK: 'Week',
     MONTH: 'Month',
@@ -1044,6 +1121,7 @@ class Gantt {
         this.setup_wrapper(wrapper);
         this.setup_options(options);
         this.setup_tasks(tasks);
+        this.change_gantt_end();
         // initialize with default view mode
         this.change_view_mode();
         this.bind_events();
@@ -1203,18 +1281,35 @@ class Gantt {
         this.trigger_event('view_change', [mode]);
     }
 
+    change_gantt_end(gantt_end = this.options.gantt_end) {
+        if (!gantt_end) return;
+        const mode = this.options.view_mode;
+        this.update_gantt_end(gantt_end);
+        this.setup_dates();
+        this.render();
+        this.trigger_event('view_change', [mode]);
+    }
+
+    update_gantt_end(gantt_end) {
+        const _gantt_end = date_utils.parse(gantt_end);
+        this.gantt_end = date_utils.end_of(_gantt_end, 'day');
+    }
+
     update_view_scale(view_mode) {
         this.options.view_mode = view_mode;
 
         if (view_mode === VIEW_MODE.DAY) {
             this.options.step = 24;
-            this.options.column_width = 38;
-        } else if (view_mode === VIEW_MODE.HALF_DAY) {
-            this.options.step = 24 / 2;
-            this.options.column_width = 38;
-        } else if (view_mode === VIEW_MODE.QUARTER_DAY) {
-            this.options.step = 24 / 4;
-            this.options.column_width = 38;
+            this.options.column_width = 36;
+        } else if (view_mode === VIEW_MODE.HOUR) {
+            this.options.step = 1;
+            this.options.column_width = 36;
+        } else if (view_mode === VIEW_MODE.MINUTE) {
+            this.options.step = 1 / 60;
+            this.options.column_width = 36;
+        } else if (view_mode === VIEW_MODE.TEN_MINUTE) {
+            this.options.step = 1 / 6;
+            this.options.column_width = 36;
         } else if (view_mode === VIEW_MODE.WEEK) {
             this.options.step = 24 * 7;
             this.options.column_width = 140;
@@ -1244,23 +1339,30 @@ class Gantt {
                 this.gantt_end = task._end;
             }
         }
+        if (!this.gantt_start) {
+            this.gantt_start = new Date();
+        }
 
-        this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
-        this.gantt_end = date_utils.start_of(this.gantt_end, 'day');
+        if (this.options.gantt_end) {
+            this.gantt_end = date_utils.parse(this.options.gantt_end);
+        }
 
         // add date padding on both sides
-        if (this.view_is([VIEW_MODE.QUARTER_DAY, VIEW_MODE.HALF_DAY])) {
-            this.gantt_start = date_utils.add(this.gantt_start, -7, 'day');
-            this.gantt_end = date_utils.add(this.gantt_end, 7, 'day');
+        if (this.view_is([VIEW_MODE.MINUTE, VIEW_MODE.TEN_MINUTE])) {
+            this.gantt_start = date_utils.start_of(this.gantt_start, 'hour');
+            this.gantt_end = date_utils.end_of(this.gantt_end, 'hour');
+        } else if (this.view_is(VIEW_MODE.HOUR)) {
+            this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
+            this.gantt_end = date_utils.end_of(this.gantt_end, 'day');
         } else if (this.view_is(VIEW_MODE.MONTH)) {
             this.gantt_start = date_utils.start_of(this.gantt_start, 'year');
-            this.gantt_end = date_utils.add(this.gantt_end, 1, 'year');
+            this.gantt_end = date_utils.end_of(this.gantt_end, 'year');
         } else if (this.view_is(VIEW_MODE.YEAR)) {
             this.gantt_start = date_utils.add(this.gantt_start, -2, 'year');
             this.gantt_end = date_utils.add(this.gantt_end, 2, 'year');
         } else {
-            this.gantt_start = date_utils.add(this.gantt_start, -1, 'month');
-            this.gantt_end = date_utils.add(this.gantt_end, 1, 'month');
+            this.gantt_start = date_utils.start_of(this.gantt_start, 'month');
+            this.gantt_end = date_utils.end_of(this.gantt_end, 'month');
         }
     }
 
@@ -1276,12 +1378,16 @@ class Gantt {
                     cur_date = date_utils.add(cur_date, 1, 'year');
                 } else if (this.view_is(VIEW_MODE.MONTH)) {
                     cur_date = date_utils.add(cur_date, 1, 'month');
+                } else if (this.view_is(VIEW_MODE.DAY)) {
+                    cur_date = date_utils.add(cur_date, 1, 'day');
+                } else if (this.view_is(VIEW_MODE.HOUR)) {
+                    cur_date = date_utils.add(cur_date, 1, 'hour');
+                } else if (this.view_is(VIEW_MODE.MINUTE)) {
+                    cur_date = date_utils.add(cur_date, 1, 'minute');
+                } else if (this.view_is(VIEW_MODE.TEN_MINUTE)) {
+                    cur_date = date_utils.add(cur_date, 10, 'minute');
                 } else {
-                    cur_date = date_utils.add(
-                        cur_date,
-                        this.options.step,
-                        'hour'
-                    );
+                    // if defined millisecond, put the logic here
                 }
             }
             this.dates.push(cur_date);
@@ -1415,7 +1521,10 @@ class Gantt {
                 tick_class += ' thick';
             }
             // thick ticks for quarters
-            if (this.view_is(VIEW_MODE.MONTH) && (date.getMonth() + 1) % 3 === 0) {
+            if (
+                this.view_is(VIEW_MODE.MONTH) &&
+                (date.getMonth() + 1) % 3 === 0
+            ) {
                 tick_class += ' thick';
             }
 
@@ -1504,46 +1613,102 @@ class Gantt {
 
     get_date_info(date, last_date, i) {
         if (!last_date) {
-            last_date = date_utils.add(date, 1, 'year');
+            let scale = 'year';
+            switch (this.options.view_mode.toLowerCase()) {
+                case 'ten minute':
+                case 'minute':
+                    scale = 'hour';
+                    break;
+                case 'hour':
+                    scale = 'day';
+                    break;
+                case 'day':
+                    scale = 'month';
+                    break;
+                default:
+                    // month
+                    scale = 'year';
+            }
+            last_date = date_utils.add(date, 1, scale);
         }
         const date_text = {
-            'Quarter Day_lower': date_utils.format(
+            Minute_lower: date_utils.format(date, 'mm', this.options.language),
+            'Ten Minute_lower': date_utils.format(
                 date,
-                'HH',
+                'mm',
                 this.options.language
             ),
-            'Half Day_lower': date_utils.format(
-                date,
-                'HH',
-                this.options.language
-            ),
-            Day_lower:
-                date.getDate() !== last_date.getDate()
-                    ? date_utils.format(date, 'D', this.options.language)
-                    : '',
+            Hour_lower: date_utils.format(date, 'HH', this.options.language),
+            Day_lower: date_utils.format(date, 'D', this.options.language),
             Week_lower:
                 date.getMonth() !== last_date.getMonth()
-                    ? date_utils.format(date, 'D MMM', this.options.language)
+                    ? date_utils.format(date, 'MMM D', this.options.language)
                     : date_utils.format(date, 'D', this.options.language),
             Month_lower: date_utils.format(date, 'MMMM', this.options.language),
             Year_lower: date_utils.format(date, 'YYYY', this.options.language),
-            'Quarter Day_upper':
-                date.getDate() !== last_date.getDate()
-                    ? date_utils.format(date, 'D MMM', this.options.language)
+            Minute_upper:
+                date.getHours() !== last_date.getHours()
+                    ? date.getDate() !== last_date.getDate()
+                      ? date.getMonth() !== last_date.getMonth()
+                        ? date_utils.format(
+                              date,
+                              'MMM D HHH',
+                              this.options.language
+                          )
+                        : date_utils.format(
+                              date,
+                              'D HHH',
+                              this.options.language
+                          )
+                      : date_utils.format(date, 'HHH', this.options.language)
+                    : 'test',
+            'Ten Minute_upper':
+                date.getHours() !== last_date.getHours()
+                    ? date.getDate() !== last_date.getDate()
+                      ? date.getMonth() !== last_date.getMonth()
+                        ? date_utils.format(
+                              date,
+                              'MMM D HHH',
+                              this.options.language
+                          )
+                        : date_utils.format(
+                              date,
+                              'D HHH',
+                              this.options.language
+                          )
+                      : date_utils.format(date, 'HHH', this.options.language)
                     : '',
-            'Half Day_upper':
+            Hour_upper:
                 date.getDate() !== last_date.getDate()
                     ? date.getMonth() !== last_date.getMonth()
-                      ? date_utils.format(date, 'D MMM', this.options.language)
+                      ? date.getFullYear() !== last_date.getFullYear()
+                        ? date_utils.format(date, 'MMM D, YYYY')
+                        : date_utils.format(
+                              date,
+                              'MMM D',
+                              this.options.language
+                          )
                       : date_utils.format(date, 'D', this.options.language)
                     : '',
             Day_upper:
                 date.getMonth() !== last_date.getMonth()
-                    ? date_utils.format(date, 'MMMM', this.options.language)
+                    ? date.getFullYear() !== last_date.getFullYear()
+                      ? date_utils.format(
+                            date,
+                            'MMMM YYYY',
+                            this.options.language
+                        )
+                      : date_utils.format(date, 'MMMM', this.options.language)
                     : '',
             Week_upper:
                 date.getMonth() !== last_date.getMonth()
-                    ? date_utils.format(date, 'MMMM', this.options.language)
+                    ? date.getFullYear() !== last_date.getFullYear()
+                      ? date_utils.format(
+                            date,
+                            'MMMM, YYYY',
+                            this.options.language
+                        )
+                      : date_utils.format(date, 'MMMM', this.options.language)
                     : '',
             Month_upper:
                 date.getFullYear() !== last_date.getFullYear()
@@ -1562,10 +1727,12 @@ class Gantt {
         };
 
         const x_pos = {
-            'Quarter Day_lower': this.options.column_width * 4 / 2,
-            'Quarter Day_upper': 0,
-            'Half Day_lower': this.options.column_width * 2 / 2,
-            'Half Day_upper': 0,
+            Minute_lower: this.options.column_width / 2,
+            Minute_upper: this.options.column_width * 60 / 2,
+            'Ten Minute_lower': this.options.column_width / 2,
+            'Ten Minute_upper': this.options.column_width * 6 / 2,
+            Hour_lower: this.options.column_width / 2,
+            Hour_upper: this.options.column_width * 24 / 2,
             Day_lower: this.options.column_width / 2,
             Day_upper: this.options.column_width * 30 / 2,
             Week_lower: 0,

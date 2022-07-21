@@ -1,6 +1,6 @@
 {
-  "name": "frappe-gantt",
-  "version": "0.6.0",
+  "name": "gantt-chart",
+  "version": "0.0.1",
   "description": "A simple, modern, interactive gantt library for the web",
   "main": "src/index.js",
   "scripts": {
@@ -11,10 +11,6 @@
     "test:watch": "jest --watch",
     "prettier": "prettier es6 --write \"{src/*,tests/*,rollup.config}.js\""
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/frappe/gantt.git"
-  },
   "keywords": [
     "gantt",
     "svg",
@@ -23,12 +19,8 @@
     "interactive gantt",
     "project management"
   ],
-  "author": "Faris Ansari",
+  "author": "Faris Ansari, Yubin Fu",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/frappe/gantt/issues"
-  },
-  "homepage": "https://github.com/frappe/gantt",
   "devDependencies": {
     "babel-preset-env": "^1.6.1",
     "deepmerge": "^2.0.1",
@@ -43,5 +35,8 @@
   },
   "eslintIgnore": [
     "dist"
-  ]
+  ],
+  "dependencies": {
+    "sass": "^1.49.10"
+  }
 }
